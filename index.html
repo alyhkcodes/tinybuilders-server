@@ -1169,7 +1169,7 @@ function updateObjectPhysics() {
     if (!onGround) {
       objSettled[obj.id] = false;
       // Free fall with gravity
-      objVelY[obj.id] +=OBJ_GRAVITY = 0.38;
+      objVelY[obj.id] += OBJ_GRAVITY;
 
       // COM-based torque: heavier side causes rotation during fall
       const com = getCOMOffset(obj);
@@ -1693,16 +1693,15 @@ function isInsideContainer(wx, wy) {
 function updateWater() {
   const groundY = getGroundYForPhysics();
 
-  // Pump: emit water
   waterPumps.forEach(pump => {
     if (!pump.on) return;
     const angle = pump.angle || -Math.PI / 2;
-    const speed = 4.0;
+    const speed = 3.5;
     for (let i = 0; i < WATER_PUMP_RATE; i++) {
       addWaterBlob(
         pump.pipeEndX || pump.x,
         pump.pipeEndY || pump.y,
-        Math.cos(angle) * speed + (Math.random() - 0.5) * 1.2,
+        Math.cos(angle) * speed + (Math.random() - 0.5) * 0.8,
         Math.sin(angle) * speed + (Math.random() - 0.5) * 0.4
       );
     }
@@ -1712,84 +1711,79 @@ function updateWater() {
     const b = waterBlobs[i];
     b.age++;
 
-    // Gravity — always pull down
+    // Always apply gravity
     b.vy += WATER_GRAVITY;
 
-    // Horizontal friction (spreads freely along surfaces)
-    if (b.onGround || b.spreading) {
-      b.vx *= WATER_SPREAD_FRICTION;
-    } else {
-      b.vx *= WATER_FRICTION;
-    }
-
-    // Check container: if surrounded, slow down significantly (filling behavior)
-    const inside = isInsideContainer(b.x, b.y);
-    if (inside) {
-      b.vx *= 0.6;
-      b.vy *= 0.6;
-    }
+    // Horizontal damping
+    b.vx *= b.onGround ? 0.96 : 0.995;
 
     b.x += b.vx;
     b.y += b.vy;
 
-    // Ground collision — water spreads horizontally on ground
+    // --- Ground collision ---
     if (b.y + b.r >= groundY) {
       b.y = groundY - b.r;
-      if (Math.abs(b.vy) > 0.5) {
-        // Convert vertical momentum to horizontal spread (water spreading)
-        b.vx += (Math.random() - 0.5) * b.vy * 0.8;
-        b.vy *= -0.08; // very little bounce — water is inelastic
-      } else {
-        b.vy = 0;
-      }
+      b.vy *= -0.05;
+      if (Math.abs(b.vy) < 0.5) b.vy = 0;
+      b.vx += (Math.random() - 0.5) * 0.3;
       b.onGround = true;
       b.spreading = true;
     }
 
-    // Object collisions — water flows over and around objects
+    // --- Object collisions: treat surfaces as solid walls/floors ---
+    let blocked = false;
     placedObjects.forEach(obj => {
-      const ocx = obj.x + obj.w / 2, ocy = obj.y + obj.h / 2;
+      if (obj.isTNT) return;
       const rot = obj.rot || 0;
+      const ocx = obj.x + obj.w / 2;
+      const ocy = obj.y + obj.h / 2;
       const cos = Math.cos(-rot), sin = Math.sin(-rot);
+
+      // Transform blob into object local space
       const lx = cos * (b.x - ocx) - sin * (b.y - ocy);
       const ly = sin * (b.x - ocx) + cos * (b.y - ocy);
-      const hw = obj.w / 2 + b.r, hh = obj.h / 2 + b.r;
+      const hw = obj.w / 2 + b.r;
+      const hh = obj.h / 2 + b.r;
 
       if (lx > -hw && lx < hw && ly > -hh && ly < hh) {
-        // Determine which surface to land on
-        const dTop = Math.abs(ly + obj.h / 2);    // dist to top
-        const dLeft = Math.abs(lx + obj.w / 2);   // dist to left
-        const dRight = Math.abs(lx - obj.w / 2);  // dist to right
+        blocked = true;
+        // Penetration depths
+        const dTop   = hh - ly;   // how far below top edge
+        const dBot   = hh + ly;   // how far above bottom edge
+        const dLeft  = hw + lx;   // how far from left wall
+        const dRight = hw - lx;   // how far from right wall
 
-        if (dTop <= dLeft && dTop <= dRight && b.vy >= 0) {
-          // Land on top — spread sideways
+        const minDep = Math.min(dTop, dBot, dLeft, dRight);
+
+        if (minDep === dTop && b.vy >= 0) {
+          // Land on top surface — slide sideways based on slope
           const topLY = -obj.h / 2;
           const topWY = ocy + Math.sin(rot) * lx + Math.cos(rot) * topLY;
           b.y = topWY - b.r;
-          // Spread along surface based on slope
-          const slopeX = Math.cos(rot) * Math.sin(rot);
-          b.vx += slopeX * 2.5 + (Math.random() - 0.5) * 0.5;
-          if (Math.abs(b.vy) > 0.5) {
-            b.vx += (Math.random() - 0.5) * b.vy * 0.4;
-            b.vy *= -0.05;
-          } else {
-            b.vy = 0;
-          }
+          // Slope direction: push water downhill
+          const slopePush = Math.sin(rot) * 3.5;
+          b.vx += slopePush + (Math.random() - 0.5) * 0.2;
+          b.vy *= -0.03;
+          if (Math.abs(b.vy) < 0.3) b.vy = 0;
           b.onGround = true;
           b.spreading = true;
-        } else if (dLeft < dRight) {
-          // Hit left side
-          b.x = ocx - obj.w / 2 - b.r;
-          b.vx = Math.min(b.vx, -Math.abs(b.vx) * 0.1);
-          b.vy += 0.1; // slide down
-        } else {
-          // Hit right side
-          b.x = ocx + obj.w / 2 + b.r;
-          b.vx = Math.max(b.vx, Math.abs(b.vx) * 0.1);
-          b.vy += 0.1; // slide down
+        } else if (minDep === dLeft) {
+          // Hit left wall — slide down
+          b.x = ocx - obj.w / 2 - b.r - 0.5;
+          b.vx = -Math.abs(b.vx) * 0.1;
+          b.vy += 0.4; // gravity pulls it down along wall
+        } else if (minDep === dRight) {
+          // Hit right wall — slide down
+          b.x = ocx + obj.w / 2 + b.r + 0.5;
+          b.vx = Math.abs(b.vx) * 0.1;
+          b.vy += 0.4;
+        } else if (minDep === dBot) {
+          // Hit ceiling from below
+          b.vy = Math.abs(b.vy) * 0.1;
+          b.y = ocy + obj.h / 2 + b.r + 0.5;
         }
 
-        // Extinguish fire!
+        // Extinguish fire
         if (fireState[obj.id] && !fireState[obj.id].extinguished) {
           fireState[obj.id].extinguished = true;
           showToast("💧 Water extinguished the fire!");
@@ -1798,18 +1792,20 @@ function updateWater() {
       }
     });
 
-    // Stickman floats in large water accumulation
-    const nearbyWater = waterBlobs.filter(wb => Math.hypot(wb.x - myStickX, wb.y - myStickY) < 40).length;
+    // Stickman buoyancy
+    const nearbyWater = waterBlobs.filter(
+      wb => Math.hypot(wb.x - myStickX, wb.y - myStickY) < 40
+    ).length;
     if (nearbyWater > 15 && !stickOnGround) {
-      stickVelY = Math.min(stickVelY, -0.5); // buoyancy
+      stickVelY = Math.min(stickVelY, -0.5);
     }
 
-    // World bounds — water wraps or stops at edges
-    if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx) * 0.2; }
-    if (b.x > worldW) { b.x = worldW; b.vx = -Math.abs(b.vx) * 0.2; }
+    // World bounds
+    if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.3; }
+    if (b.x > worldW - b.r) { b.x = worldW - b.r; b.vx = -Math.abs(b.vx) * 0.3; }
 
-    // Remove very old blobs or ones that have stopped
-    if (b.age > 800) waterBlobs.splice(i, 1);
+    // Remove old blobs
+    if (b.age > 1200) waterBlobs.splice(i, 1);
   }
 }
 

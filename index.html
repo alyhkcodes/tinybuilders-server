@@ -1009,96 +1009,63 @@ function resolveCollision(sx, sy, dx, dy) {
   let ny = sy + dy;
   let onGround = false;
 
-  // Ground floor
+  // Apply gravity landing on ground floor
   if (ny >= groundY) {
     ny = groundY;
     onGround = true;
     stickVelY = 0;
   }
 
-  // Object collisions — sweep approach
+  // Simple AABB collision against each object (ignore rotation for collision — use bounding box)
   placedObjects.forEach(obj => {
-    const rot = obj.rot || 0;
-    const cx = obj.x + obj.w / 2;
-    const cy = obj.y + obj.h / 2;
-    const cosR = Math.cos(-rot), sinR = Math.sin(-rot);
+    // Stickman feet box
+    const sLeft  = nx - STICK_W;
+    const sRight = nx + STICK_W;
+    const sTop   = ny - STICK_H + STICK_FEET;
+    const sBot   = ny + STICK_FEET;
 
-    // Feet point
-    const feetY = ny + STICK_FEET;
+    // Object box (ignore rotation for solid collision — simpler and reliable)
+    const oLeft  = obj.x;
+    const oRight = obj.x + obj.w;
+    const oTop   = obj.y;
+    const oBot   = obj.y + obj.h;
 
-    // Transform stickman center into object space
-    const lx = cosR * (nx - cx) - sinR * (feetY - cy);
-    const ly = sinR * (nx - cx) + cosR * (feetY - cy);
+    // No overlap
+    if (sRight <= oLeft || sLeft >= oRight || sBot <= oTop || sTop >= oBot) return;
 
-    const hw = obj.w / 2 + STICK_W * 0.6;
-    const hh = obj.h / 2;
+    // Overlap detected — find smallest penetration axis
+    const overlapLeft  = sRight - oLeft;
+    const overlapRight = oRight - sLeft;
+    const overlapTop   = sBot - oTop;
+    const overlapBot   = oBot - sTop;
 
-    if (lx >= -hw && lx <= hw && ly >= -hh && ly <= hh) {
-      // Stickman is inside object — figure out which side to push out
+    const minH = Math.min(overlapLeft, overlapRight);
+    const minV = Math.min(overlapTop, overlapBot);
 
-      // Distance to each edge
-      const dLeft  = lx + hw;
-      const dRight = hw - lx;
-      const dTop   = ly + hh;
-      const dBot   = hh - ly;
-
-      // Top surface — can stand on it (climbing/landing)
-      if (dTop <= CLIMB_STEP * 2 && dy >= 0) {
-        // Push up to top of object
-        // Compute world y of top surface at lx
-        const topLY = -hh;
-        const topWX = cx + Math.cos(rot) * lx - Math.sin(rot) * topLY;
-        const topWY = cy + Math.sin(rot) * lx + Math.cos(rot) * topLY;
-        ny = topWY - STICK_FEET;
-        onGround = true;
+    if (minV < minH) {
+      // Vertical resolution
+      if (overlapTop < overlapBot) {
+        // Stickman landing on top of object
+        ny = oTop - STICK_FEET;
         stickVelY = 0;
-        return;
-      }
-
-      // Sloped top — climb if moving horizontally into a gentle slope
-      const slopeAngle = Math.abs(rot);
-      if (slopeAngle < Math.PI * 0.45 && dy >= -2) {
-        // Try climbing: push feet up
-        const topLY = -hh;
-        const topWY = cy + Math.sin(rot) * lx + Math.cos(rot) * topLY;
-        const climb = sy + STICK_FEET - topWY;
-        if (climb >= 0 && climb <= CLIMB_STEP * 3) {
-          ny = topWY - STICK_FEET;
-          onGround = true;
-          stickVelY = 0;
-          return;
-        }
-      }
-
-      // Side collision — block horizontal movement
-      if (dLeft < dRight && dLeft < dTop && dLeft < dBot) {
-        // Push right
-        const wallLX = -hw;
-        const wallWX = cx + Math.cos(rot) * wallLX - Math.sin(rot) * ly;
-        nx = wallWX + STICK_W * 0.6;
-        stickVelX = 0;
-      } else if (dRight <= dLeft && dRight < dTop && dRight < dBot) {
-        // Push left
-        const wallLX = hw;
-        const wallWX = cx + Math.cos(rot) * wallLX - Math.sin(rot) * ly;
-        nx = wallWX - STICK_W * 0.6;
-        stickVelX = 0;
-      } else if (dTop < dBot) {
-        // Push up (bottom of object hit stickman head)
-        const topWY = cy + Math.sin(rot) * lx + Math.cos(rot) * (-hh);
-        ny = topWY - STICK_FEET;
         onGround = true;
-        stickVelY = 0;
       } else {
-        // Push down (ceiling)
+        // Stickman hitting bottom of object (ceiling)
+        ny = oBot + STICK_H - STICK_FEET;
         stickVelY = Math.max(0, stickVelY);
       }
+    } else {
+      // Horizontal resolution — push stickman out sideways
+      if (overlapLeft < overlapRight) {
+        nx = oLeft - STICK_W;
+      } else {
+        nx = oRight + STICK_W;
+      }
+      stickVelX = 0;
     }
   });
 
-  // World bounds
   nx = Math.max(STICK_W, Math.min(worldW - STICK_W, nx));
-
   return { x: nx, y: ny, onGround };
 }
 
@@ -1986,46 +1953,6 @@ function physicsUpdate() {
   myStickY = result.y;
   stickOnGround = result.onGround;
 
-  // --- STICKMAN vs FALLING OBJECTS COLLISION ---
-  // Push stickman out of any moving/falling objects
-  placedObjects.forEach(obj => {
-    const rot = obj.rot || 0;
-    const cx = obj.x + obj.w / 2;
-    const cy = obj.y + obj.h / 2;
-    const cosR = Math.cos(-rot), sinR = Math.sin(-rot);
-    const feetY = myStickY + STICK_FEET;
-
-    // Stickman bounding box vs object (simplified AABB in object space)
-    const lx = cosR * (myStickX - cx) - sinR * (feetY - cy);
-    const ly = sinR * (myStickX - cx) + cosR * (feetY - cy);
-    const hw = obj.w / 2 + STICK_W * 0.7;
-    const hh = obj.h / 2;
-
-    if (lx >= -hw && lx <= hw && ly >= -hh && ly <= hh) {
-      // Push stickman to nearest side
-      const dLeft  = lx + hw;
-      const dRight = hw - lx;
-      const dTop   = ly + hh;
-
-      if (dTop < dLeft && dTop < dRight) {
-        // Object landed on top of stickman or stickman on top of object
-        const topWY = cy + Math.sin(rot) * lx + Math.cos(rot) * (-hh);
-        myStickY = topWY - STICK_FEET;
-        stickOnGround = true;
-        stickVelY = Math.min(0, stickVelY);
-      } else if (dLeft < dRight) {
-        // Push stickman right
-        const wallWX = cx + Math.cos(rot) * (-hw) - Math.sin(rot) * ly;
-        myStickX = wallWX + STICK_W;
-        stickVelX = Math.max(0, stickVelX);
-      } else {
-        // Push stickman left
-        const wallWX = cx + Math.cos(rot) * hw - Math.sin(rot) * ly;
-        myStickX = wallWX - STICK_W;
-        stickVelX = Math.min(0, stickVelX);
-      }
-    }
-  });
 
   // If not on ground after resolve and no upward vel, check if we should be on ground
   if (!stickOnGround && stickVelY === 0 && myStickY >= worldH * 0.82) {

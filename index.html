@@ -1179,6 +1179,9 @@ const settledIds = new Set(
     if (objVelX[obj.id] === undefined) objVelX[obj.id] = 0;
     if (objAngVel[obj.id] === undefined) objAngVel[obj.id] = 0;
 
+    // Skip physics entirely for settled objects
+    if (objSettled[obj.id]) return;
+
     const cx = obj.x + obj.w / 2;
     const supportY = getSupportY(obj.id, cx, obj.w);
     const bottomY = obj.y + obj.h;
@@ -1186,7 +1189,10 @@ const settledIds = new Set(
    const onGround = bottomY >= supportY - 2;
 
     if (!onGround) {
-      objSettled[obj.id] = false;
+      // Only unsettle if we're significantly airborne, not just floating 1px above support
+      if (bottomY < supportY - 8) {
+        objSettled[obj.id] = false;
+      }
       // Free fall with gravity
       objVelY[obj.id] += OBJ_GRAVITY;
 

@@ -98,6 +98,16 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("objectsUpdated", room.objects);
   });
 
+  // ---- UPDATE OBJECT (move/resize/rotate) ----
+  socket.on("updateObject", ({ roomCode, object }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    const idx = room.objects.findIndex(o => o.id === object.id);
+    if (idx !== -1) room.objects[idx] = object;
+    // Broadcast to others only (sender already has latest)
+    socket.to(roomCode).emit("objectTransformed", object);
+  });
+
   // ---- DELETE OBJECT ----
   socket.on("deleteObject", ({ roomCode, objectId }) => {
     const room = rooms[roomCode];

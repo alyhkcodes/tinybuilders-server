@@ -1172,7 +1172,7 @@ function updateObjectPhysics() {
     if (!onGround) {
       objSettled[obj.id] = false;
       // Free fall with gravity
-      objVelY[obj.id] += OBJ_GRAVITY;
+      objVelY[obj.id] +=OBJ_GRAVITY = 0.38;
 
       // COM-based torque: heavier side causes rotation during fall
       const com = getCOMOffset(obj);

@@ -641,18 +641,21 @@ function initSocket(cb) {
     const prevById = {};
     placedObjects.forEach(o => { prevById[o.id] = o; });
     placedObjects = data.map(incoming => {
-      const existing = prevById[incoming.id];
-      if (existing) {
-        // Preserve position/rotation from physics simulation for local player
-        // but accept new objects from server
-        return existing;
-      }
-      // New object from another player — initialize its velocity
-      if (objVelY[incoming.id] === undefined) objVelY[incoming.id] = 0;
-      if (objVelX[incoming.id] === undefined) objVelX[incoming.id] = 0;
-      if (objAngVel[incoming.id] === undefined) objAngVel[incoming.id] = 0;
-      return incoming;
-    });
+  const existing = prevById[incoming.id];
+  if (existing) {
+    // Only preserve position if object has settled, otherwise keep server state
+    if (objSettled[incoming.id]) return existing;
+    // Not settled yet — keep existing physics state but don't reset velocity
+    return existing;
+  }
+  // Truly new object — initialize physics only if not already tracked
+  if (objVelY[incoming.id] === undefined) objVelY[incoming.id] = 0;
+  if (objVelX[incoming.id] === undefined) objVelX[incoming.id] = 0;
+  if (objAngVel[incoming.id] === undefined) objAngVel[incoming.id] = 0;
+  objSettled[incoming.id] = false;
+  return incoming;
+});
+renderWorld();
     renderWorld();
   });
 
@@ -1150,6 +1153,10 @@ const objSettled = {};
 
 function updateObjectPhysics() {
   if (!physicsEnabled) return;
+  // Snapshot settled IDs to avoid re-triggering fall on server sync
+const settledIds = new Set(
+  placedObjects.filter(o => objSettled[o.id]).map(o => o.id)
+);
   const groundY = getGroundYForPhysics();
 
   placedObjects.forEach(obj => {
@@ -1164,7 +1171,7 @@ function updateObjectPhysics() {
     const supportY = getSupportY(obj.id, cx, obj.w);
     const bottomY = obj.y + obj.h;
 
-    const onGround = bottomY >= supportY - 2;
+   const onGround = bottomY >= supportY - 2;
 
     if (!onGround) {
       objSettled[obj.id] = false;
@@ -1189,6 +1196,7 @@ function updateObjectPhysics() {
         objAngVel[obj.id] += objVelX[obj.id] * 0.015 + com * objVelY[obj.id] * -0.1;
       } else {
         objVelY[obj.id] = 0;
+        objVelX[obj.id] = 0;
         obj.y = supportY - obj.h;
         objAngVel[obj.id] *= 0.7; // damp rotation when on ground
         // Settle tilt due to COM

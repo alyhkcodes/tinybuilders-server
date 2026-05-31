@@ -30,14 +30,15 @@ io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
 
   // ---- CREATE ROOM ----
-  socket.on("createRoom", ({ name }) => {
+  socket.on("createRoom", ({ name, mapId }) => {
     const roomCode = makeRoomCode();
 
     rooms[roomCode] = {
       players: {
         [socket.id]: { name: name || "Player", color: "#ff85b3" }
       },
-      objects: []
+      objects: [],
+      mapId: mapId || "meadow"
     };
 
     socket.join(roomCode);
@@ -46,7 +47,8 @@ io.on("connection", (socket) => {
     socket.emit("roomCreated", {
       roomCode,
       objects: [],
-      players: rooms[roomCode].players
+      players: rooms[roomCode].players,
+      mapId: rooms[roomCode].mapId
     });
 
     console.log(`Room ${roomCode} created by ${name}`);
@@ -78,7 +80,8 @@ io.on("connection", (socket) => {
     socket.emit("roomJoined", {
       roomCode,
       objects: room.objects,
-      players: room.players
+      players: room.players,
+      mapId: room.mapId || "meadow"
     });
 
     // Tell everyone in room about updated players
@@ -117,6 +120,15 @@ io.on("connection", (socket) => {
 
     // Tell everyone in room
     io.to(roomCode).emit("objectsUpdated", room.objects);
+  });
+
+  // ---- CHANGE MAP ----
+  socket.on("changeMap", ({ roomCode, mapId }) => {
+    const room = rooms[roomCode];
+    if (!room || !mapId) return;
+
+    room.mapId = mapId;
+    io.to(roomCode).emit("mapChanged", { mapId });
   });
 
   // ---- MOVE STICKMAN ----

@@ -3435,8 +3435,35 @@ function renderWorld() {
   }
 
   // --- STICKMEN + OBJECTS rendered after night overlay (see below) ---
-  // --- PLACED OBJECTS drawn first (behind stickmen visually) ---
+  // --- SINGLE LAYER: collect all drawables and sort by Y (painter's algorithm) ---
+  const drawables = [];
+
   placedObjects.forEach(obj => {
+    drawables.push({ sortY: obj.y + obj.h, type: 'obj', data: obj });
+  });
+
+  Object.entries(stickmanPositions).forEach(([id, pos]) => {
+    drawables.push({ sortY: pos.y, type: 'other_stick', data: pos });
+  });
+
+  if (myStickX >= 0) {
+    drawables.push({ sortY: myStickY, type: 'my_stick' });
+  }
+
+  drawables.sort((a, b) => a.sortY - b.sortY);
+
+  drawables.forEach(drawable => {
+    if (drawable.type === 'other_stick') {
+      const pos = drawable.data;
+      drawStickman(worldCtx, pos.x, pos.y, pos.color, pos.name, false, 1, false);
+      return;
+    }
+    if (drawable.type === 'my_stick') {
+      drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
+      return;
+    }
+
+    const obj = drawable.data;
     const img = new Image();
     img.src = obj.imageData;
     const cx = obj.x + obj.w / 2;
@@ -3511,19 +3538,11 @@ function renderWorld() {
     }
   });
 
-  // --- FIRE, WATER, EXPLOSIONS, PUMPS ---
+  // --- FIRE, WATER, EXPLOSIONS, PUMPS (always on top of objects/stickmen) ---
   drawFire(worldCtx);
   drawWater(worldCtx);
   drawExplosions(worldCtx);
   drawWaterPumps(worldCtx);
-
-  // --- STICKMEN drawn on top of everything so they're always visible ---
-  Object.entries(stickmanPositions).forEach(([id, pos]) => {
-    drawStickman(worldCtx, pos.x, pos.y, pos.color, pos.name, false, 1, false);
-  });
-  if (myStickX >= 0) {
-    drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
-  }
 
   // --- FLASHLIGHT (drawn over everything else) ---
   drawFlashlight(worldCtx);

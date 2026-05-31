@@ -825,12 +825,41 @@ function clearDrawCanvas() {
 
 function collectDrawing() {
   const canvas = document.getElementById("drawCanvas");
-  // Check if anything is drawn
-  const imgData = drawCtx.getImageData(0,0,canvas.width,canvas.height);
-  const hasContent = imgData.data.some((v,i) => i%4===3 && v>0);
+  const imgData = drawCtx.getImageData(0, 0, canvas.width, canvas.height);
+  const hasContent = imgData.data.some((v, i) => i % 4 === 3 && v > 0);
   if (!hasContent) { showToast("Draw something first! ✏️"); return; }
-  const dataURL = canvas.toDataURL("image/png");
-  inventory.push(dataURL);
+
+  // Find tight bounding box of actual pixels
+  let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const alpha = imgData.data[(y * canvas.width + x) * 4 + 3];
+      if (alpha > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  // Add 2px margin
+  minX = Math.max(0, minX - 2);
+  minY = Math.max(0, minY - 2);
+  maxX = Math.min(canvas.width - 1, maxX + 2);
+  maxY = Math.min(canvas.height - 1, maxY + 2);
+
+  const cropW = maxX - minX;
+  const cropH = maxY - minY;
+
+  // Draw cropped content to a tight canvas
+  const cropCanvas = document.createElement("canvas");
+  cropCanvas.width = cropW;
+  cropCanvas.height = cropH;
+  const cropCtx = cropCanvas.getContext("2d");
+  cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+  inventory.push(cropCanvas.toDataURL("image/png"));
   renderInventory();
   clearDrawCanvas();
   showToast("Added to inventory! 🎒");
@@ -2244,11 +2273,21 @@ function handleWorldClick(evt) {
       showToast("Pick an item from inventory first! 🎒");
       return;
     }
+    // Use natural image dimensions so collision matches visible pixels exactly
+    const tmpImg = new Image();
+    tmpImg.src = inventory[selectedInvIndex];
+    const natW = tmpImg.naturalWidth || 100;
+    const natH = tmpImg.naturalHeight || 100;
+    // Scale up small drawings to be usable, preserve aspect ratio
+    const maxDim = 120;
+    const scale = Math.min(maxDim / Math.max(natW, natH, 1), 3);
+    const objW = Math.max(natW * scale, 10);
+    const objH = Math.max(natH * scale, 10);
     const obj = {
       id: Date.now() + "_" + Math.random().toString(36).slice(2),
       imageData: inventory[selectedInvIndex],
-      x: x - 50, y: y - 50,
-      w: 100, h: 100,
+      x: x - objW / 2, y: y - objH / 2,
+      w: objW, h: objH,
       rot: 0,
       placedBy: myName
     };

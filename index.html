@@ -569,6 +569,7 @@ let eraserRadius = 18;
 
 // TNT timers: { tntId: { startTime, interval } }
 const tntTimers = {};
+const myPlacedIds = new Set();
 
 const OBJ_GRAVITY = 0.38;
 
@@ -649,17 +650,15 @@ function initSocket(cb) {
     }
   }
 
-  // Add only truly NEW objects (ones we don't already have)
+  // Add only truly NEW objects from OTHER players
   data.forEach(incoming => {
-    if (!existingIds.has(incoming.id)) {
-      // Brand new object from another player — initialize physics
+    if (!existingIds.has(incoming.id) && !myPlacedIds.has(incoming.id)) {
       objVelX[incoming.id] = 0;
       objVelY[incoming.id] = 0;
       objAngVel[incoming.id] = 0;
       objSettled[incoming.id] = false;
       placedObjects.push(incoming);
     }
-    // If we already have it, do nothing — local physics state is authoritative
   });
 
   renderWorld();
@@ -673,11 +672,10 @@ function initSocket(cb) {
     showToast("Map changed to " + map.name);
   });
 
-  socket.on("objectTransformed", (obj) => {
+ socket.on("objectTransformed", (obj) => {
+  if (myPlacedIds.has(obj.id)) return;
   const idx = placedObjects.findIndex(o => o.id === obj.id);
   if (idx !== -1) {
-    // Only apply server transform if it's a manual move (not physics)
-    // Reset physics so the moved object falls from its new position
     placedObjects[idx] = obj;
     objSettled[obj.id] = false;
     objVelX[obj.id] = 0;
@@ -2330,6 +2328,7 @@ function handleWorldClick(evt) {
     objAngVel[obj.id] = 0;
     objSettled[obj.id] = false;
     placedObjects.push(obj);
+    myPlacedIds.add(obj.id);
     if (socket && roomCode) socket.emit("placeObject", { roomCode, object: obj });
     document.getElementById("worldHint").style.display = "none";
   }

@@ -1018,11 +1018,11 @@ function resolveCollision(sx, sy, dx, dy) {
 
   // Simple AABB collision against each object (ignore rotation for collision — use bounding box)
   placedObjects.forEach(obj => {
-    // Stickman feet box
-    const sLeft  = nx - STICK_W;
-    const sRight = nx + STICK_W;
-    const sTop   = ny - STICK_H + STICK_FEET;
-    const sBot   = ny + STICK_FEET;
+    // Stickman feet box — zero padding so stickman touches objects exactly
+    const sLeft  = nx - 4;
+    const sRight = nx + 4;
+    const sTop   = ny - STICK_H;
+    const sBot   = ny;
 
     // Object box (ignore rotation for solid collision — simpler and reliable)
     const oLeft  = obj.x;
@@ -1045,21 +1045,21 @@ function resolveCollision(sx, sy, dx, dy) {
     if (minV < minH) {
       // Vertical resolution
       if (overlapTop < overlapBot) {
-        // Stickman landing on top of object
-        ny = oTop - STICK_FEET;
+        // Stickman landing on top of object — feet touch exactly
+        ny = oTop;
         stickVelY = 0;
         onGround = true;
       } else {
-        // Stickman hitting bottom of object (ceiling)
-        ny = oBot + STICK_H - STICK_FEET;
+        // Stickman hitting ceiling
+        ny = oBot + STICK_H;
         stickVelY = Math.max(0, stickVelY);
       }
     } else {
       // Horizontal resolution — push stickman out sideways
       if (overlapLeft < overlapRight) {
-        nx = oLeft - STICK_W;
+        nx = oLeft - 4;
       } else {
-        nx = oRight + STICK_W;
+        nx = oRight + 4;
       }
       stickVelX = 0;
     }
@@ -1955,10 +1955,11 @@ function physicsUpdate() {
 
 
   // If not on ground after resolve and no upward vel, check if we should be on ground
-  if (!stickOnGround && stickVelY === 0 && myStickY >= worldH * 0.82) {
+ if (myStickY >= worldH * 0.82) {
+    myStickY = worldH * 0.82;
     stickOnGround = true;
+    stickVelY = 0;
   }
-
   // Broadcast
   if (socket && roomCode) {
     if (!physicsUpdate._last || Date.now() - physicsUpdate._last > 50) {
@@ -3521,7 +3522,7 @@ function drawStickman(ctx, x, y, color, name, isMe, facing, walking) {
   // Shadow
   ctx.fillStyle = "rgba(0,0,0,0.10)";
   ctx.beginPath();
-  ctx.ellipse(bx, by + STICK_FEET + 3, 12*s, 5*s, 0, 0, Math.PI*2);
+  ctx.ellipse(bx, by + 3, 12*s, 5*s, 0, 0, Math.PI*2);
   ctx.fill();
 
   ctx.strokeStyle = color;

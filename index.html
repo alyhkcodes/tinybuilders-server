@@ -3435,15 +3435,7 @@ function renderWorld() {
   }
 
   // --- STICKMEN + OBJECTS rendered after night overlay (see below) ---
-  // --- STICKMEN (drawn BEHIND objects so falling objects appear in front) ---
-  Object.entries(stickmanPositions).forEach(([id, pos]) => {
-    drawStickman(worldCtx, pos.x, pos.y, pos.color, pos.name, false, 1, false);
-  });
-  if (myStickX >= 0) {
-    drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
-  }
-
-  // --- PLACED OBJECTS (drawn IN FRONT of stickmen so they obstruct properly) ---
+  // --- PLACED OBJECTS drawn first (behind stickmen visually) ---
   placedObjects.forEach(obj => {
     const img = new Image();
     img.src = obj.imageData;
@@ -3524,6 +3516,14 @@ function renderWorld() {
   drawWater(worldCtx);
   drawExplosions(worldCtx);
   drawWaterPumps(worldCtx);
+
+  // --- STICKMEN drawn on top of everything so they're always visible ---
+  Object.entries(stickmanPositions).forEach(([id, pos]) => {
+    drawStickman(worldCtx, pos.x, pos.y, pos.color, pos.name, false, 1, false);
+  });
+  if (myStickX >= 0) {
+    drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
+  }
 
   // --- FLASHLIGHT (drawn over everything else) ---
   drawFlashlight(worldCtx);

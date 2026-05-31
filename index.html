@@ -636,28 +636,34 @@ function initSocket(cb) {
   });
 
   socket.on("objectsUpdated", (data) => {
-    // CRITICAL FIX: merge incoming objects preserving local physics velocity state
-    // so existing objects don't get reset and fall again
-    const prevById = {};
-    placedObjects.forEach(o => { prevById[o.id] = o; });
-    placedObjects = data.map(incoming => {
-  const existing = prevById[incoming.id];
-  if (existing) {
-    // Only preserve position if object has settled, otherwise keep server state
-    if (objSettled[incoming.id]) return existing;
-    // Not settled yet — keep existing physics state but don't reset velocity
-    return existing;
+  const existingIds = new Set(placedObjects.map(o => o.id));
+  const incomingIds = new Set(data.map(o => o.id));
+
+  // Remove objects that were deleted on the server
+  for (let i = placedObjects.length - 1; i >= 0; i--) {
+    if (!incomingIds.has(placedObjects[i].id)) {
+      const id = placedObjects[i].id;
+      placedObjects.splice(i, 1);
+      delete objVelX[id]; delete objVelY[id];
+      delete objAngVel[id]; delete objSettled[id];
+    }
   }
-  // Truly new object — initialize physics only if not already tracked
-  if (objVelY[incoming.id] === undefined) objVelY[incoming.id] = 0;
-  if (objVelX[incoming.id] === undefined) objVelX[incoming.id] = 0;
-  if (objAngVel[incoming.id] === undefined) objAngVel[incoming.id] = 0;
-  objSettled[incoming.id] = false;
-  return incoming;
-});
-renderWorld();
-    renderWorld();
+
+  // Add only truly NEW objects (ones we don't already have)
+  data.forEach(incoming => {
+    if (!existingIds.has(incoming.id)) {
+      // Brand new object from another player — initialize physics
+      objVelX[incoming.id] = 0;
+      objVelY[incoming.id] = 0;
+      objAngVel[incoming.id] = 0;
+      objSettled[incoming.id] = false;
+      placedObjects.push(incoming);
+    }
+    // If we already have it, do nothing — local physics state is authoritative
   });
+
+  renderWorld();
+});
 
   socket.on("mapChanged", (data) => {
     currentMapId = data.mapId || "meadow";
@@ -668,9 +674,17 @@ renderWorld();
   });
 
   socket.on("objectTransformed", (obj) => {
-    const idx = placedObjects.findIndex(o => o.id === obj.id);
-    if (idx !== -1) placedObjects[idx] = obj;
-  });
+  const idx = placedObjects.findIndex(o => o.id === obj.id);
+  if (idx !== -1) {
+    // Only apply server transform if it's a manual move (not physics)
+    // Reset physics so the moved object falls from its new position
+    placedObjects[idx] = obj;
+    objSettled[obj.id] = false;
+    objVelX[obj.id] = 0;
+    objVelY[obj.id] = 0;
+    objAngVel[obj.id] = 0;
+  }
+});
 
   socket.on("stickmanMoved", (data) => {
     if (data.id !== myPlayerId) {

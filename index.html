@@ -943,9 +943,9 @@ const STICK_SPEED = 3.2;       // horizontal move speed px/frame
 const STICK_JUMP = -10;        // jump velocity
 const GRAVITY = 0.45;          // gravity per frame
 const CLIMB_STEP = 6;          // max slope climb per frame
-const STICK_W = 14;            // collision half-width
-const STICK_H = 58;            // total height (feet to head top)
-const STICK_FEET = 10;         // feet offset below bx,by anchor
+const STICK_W = 4;
+const STICK_H = 58;
+const STICK_FEET = 0;
 
 let stickVelX = 0;
 let stickVelY = 0;
@@ -1009,54 +1009,44 @@ function resolveCollision(sx, sy, dx, dy) {
   let ny = sy + dy;
   let onGround = false;
 
-  // Apply gravity landing on ground floor
-  if (ny >= groundY) {
-    ny = groundY;
-    onGround = true;
-    stickVelY = 0;
-  }
+  // ny = stickman feet position (bottom of stickman)
+  // stickman occupies: x from nx-4 to nx+4, y from ny-STICK_H to ny
 
-  // Simple AABB collision against each object (ignore rotation for collision — use bounding box)
   placedObjects.forEach(obj => {
-    // Stickman feet box — zero padding so stickman touches objects exactly
-    const sLeft  = nx - 4;
-    const sRight = nx + 4;
-    const sTop   = ny - STICK_H;
-    const sBot   = ny;
-
-    // Object box (ignore rotation for solid collision — simpler and reliable)
     const oLeft  = obj.x;
     const oRight = obj.x + obj.w;
     const oTop   = obj.y;
     const oBot   = obj.y + obj.h;
 
-    // No overlap
-    if (sRight <= oLeft || sLeft >= oRight || sBot <= oTop || sTop >= oBot) return;
+    const sLeft  = nx - 4;
+    const sRight = nx + 4;
+    const sFeet  = ny;
+    const sHead  = ny - STICK_H;
 
-    // Overlap detected — find smallest penetration axis
+    // No overlap check
+    if (sRight <= oLeft || sLeft >= oRight || sFeet <= oTop || sHead >= oBot) return;
+
     const overlapLeft  = sRight - oLeft;
     const overlapRight = oRight - sLeft;
-    const overlapTop   = sBot - oTop;
-    const overlapBot   = oBot - sTop;
+    const overlapTop   = sFeet  - oTop;   // how far feet penetrate top surface
+    const overlapBot   = oBot   - sHead;  // how far head penetrates bottom surface
 
     const minH = Math.min(overlapLeft, overlapRight);
     const minV = Math.min(overlapTop, overlapBot);
 
-    if (minV < minH) {
-      // Vertical resolution
-      if (overlapTop < overlapBot) {
-        // Stickman landing on top of object — feet touch exactly
+    if (minV <= minH) {
+      if (overlapTop <= overlapBot) {
+        // Land on top — feet sit exactly at oTop
         ny = oTop;
         stickVelY = 0;
         onGround = true;
       } else {
-        // Stickman hitting ceiling
+        // Hit ceiling — head sits at oBot
         ny = oBot + STICK_H;
         stickVelY = Math.max(0, stickVelY);
       }
     } else {
-      // Horizontal resolution — push stickman out sideways
-      if (overlapLeft < overlapRight) {
+      if (overlapLeft <= overlapRight) {
         nx = oLeft - 4;
       } else {
         nx = oRight + 4;
@@ -1065,7 +1055,13 @@ function resolveCollision(sx, sy, dx, dy) {
     }
   });
 
-  nx = Math.max(STICK_W, Math.min(worldW - STICK_W, nx));
+  if (ny >= groundY) {
+    ny = groundY;
+    onGround = true;
+    stickVelY = 0;
+  }
+
+  nx = Math.max(4, Math.min(worldW - 4, nx));
   return { x: nx, y: ny, onGround };
 }
 
@@ -3529,7 +3525,7 @@ function drawStickman(ctx, x, y, color, name, isMe, facing, walking) {
   ctx.lineWidth = 2.5 * s;
   ctx.lineCap = "round";
 
-  const footY = by + STICK_FEET;          // feet anchor
+  const footY = by;          // feet anchor — by IS the feet
   const hipY  = footY - legLen;
   const shoulderY = hipY - bodyLen;
   const headCY = shoulderY - headR;

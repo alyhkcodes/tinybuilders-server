@@ -30,6 +30,43 @@ io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
 
   // ---- CREATE ROOM ----
+  socket.on("createRoom", ({ name, mapId, mode, team }) => {
+    const roomCode = makeRoomCode();
+    rooms[roomCode] = {
+      players: {},
+      objects: [],
+      mapId: mapId || "meadow",
+      mode: mode || "friendly",
+      phase: "lobby",
+      dayStart: Date.now()
+    };
+
+    const colors = ["#ff85b3", "#c4a8ff", "#ffe066", "#7ecb6f", "#ffb347", "#87ceeb"];
+    rooms[roomCode].players[socket.id] = {
+      name: name || "Player",
+      color: colors[0],
+      team: team || "red",
+      ready: false,
+      isHost: true
+    };
+
+    socket.join(roomCode);
+    socket.roomCode = roomCode;
+
+    socket.emit("roomCreated", {
+      roomCode,
+      objects: [],
+      players: rooms[roomCode].players,
+      mapId: mapId || "meadow",
+      mode: mode || "friendly",
+      dayStart: rooms[roomCode].dayStart
+    });
+
+    io.to(roomCode).emit("lobbyUpdated", rooms[roomCode].players);
+    console.log(`Room ${roomCode} created by ${name}`);
+  });
+
+  // ---- JOIN ROOM ----
   socket.on("joinRoom", ({ roomCode, name, team }) => {
     const room = rooms[roomCode];
     if (!room) { socket.emit("joinError", "Room not found! Check the code."); return; }
@@ -47,50 +84,11 @@ io.on("connection", (socket) => {
     socket.emit("roomJoined", {
       roomCode, objects: room.objects, players: room.players,
       mapId: room.mapId || "meadow", mode: room.mode || "friendly",
-      team: room.players[socket.id].team, dayStart: room.dayStart || Date.now()
+      team: team || "red", dayStart: room.dayStart || Date.now()
     });
 
     io.to(roomCode).emit("playersUpdated", room.players);
     io.to(roomCode).emit("lobbyUpdated", room.players);
-    console.log(`${name} joined room ${roomCode}`);
-  });
-
-  // ---- JOIN ROOM ----
-  socket.on("joinRoom", ({ roomCode, name, team }) => {
-    const room = rooms[roomCode];
-
-    if (!room) {
-      socket.emit("joinError", "Room not found! Check the code.");
-      return;
-    }
-
-    if (Object.keys(room.players).length >= 4) {
-      socket.emit("joinError", "Room is full (max 4 players).");
-      return;
-    }
-
-    const colors = ["#ff85b3", "#c4a8ff", "#ffe066", "#7ecb6f", "#ffb347", "#87ceeb"];
-    const takenColors = Object.values(room.players).map(p => p.color);
-    const availableColor = colors.find(c => !takenColors.includes(c)) || colors[0];
-
-    room.players[socket.id] = { name: name || "Player", color: availableColor, team: team || "red" };
-    socket.join(roomCode);
-    socket.roomCode = roomCode;
-
-    // Tell joining player the current state
-    socket.emit("roomJoined", {
-      roomCode,
-      objects: room.objects,
-      players: room.players,
-      mapId: room.mapId || "meadow",
-      mode: room.mode || "friendly",
-      team: room.players[socket.id].team,
-      dayStart: room.dayStart || Date.now()
-    });
-
-    // Tell everyone in room about updated players
-    io.to(roomCode).emit("playersUpdated", room.players);
-
     console.log(`${name} joined room ${roomCode}`);
   });
 

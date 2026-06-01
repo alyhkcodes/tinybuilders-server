@@ -979,7 +979,7 @@ function fireBullet() {
   if (myGunCooldown > 0) return;
   myGunCooldown = 18; // ~300ms at 60fps
 
-  const dir = myStickFacing || 1;
+  const dir = stickFacing || 1;
   const headY = myStickY - 62; // approximate head
   const bul = {
     id: Date.now() + Math.random(),

@@ -348,6 +348,105 @@
     width: 100%;
     accent-color: var(--pink);
   }
+  /* === WAR MODE STYLES === */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+}
+.modal-box {
+  background: var(--card);
+  border-radius: 24px;
+  border: 3px solid var(--border);
+  padding: 32px 36px;
+  max-width: 440px; width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+}
+.modal-box h2 { font-family: 'Fredoka One', cursive; font-size: 1.8rem; margin-bottom: 6px; }
+.mode-cards { display: flex; gap: 14px; margin: 18px 0; }
+.mode-card {
+  flex: 1; border-radius: 16px; border: 3px solid transparent;
+  padding: 16px 8px; cursor: pointer; transition: all 0.18s;
+  background: #f7f2ff;
+}
+.mode-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+.mode-card.selected { border-color: var(--pink); background: #fff0f7; }
+.mode-card .icon { font-size: 2.4rem; }
+.mode-card .label { font-family: 'Fredoka One', cursive; font-size: 1rem; margin-top: 6px; }
+.mode-card .desc { font-size: 0.72rem; color: #888; margin-top: 3px; }
+.team-select { display: flex; gap: 12px; margin: 12px 0; justify-content: center; }
+.team-btn {
+  font-family: 'Fredoka One', cursive; font-size: 1rem;
+  border: 3px solid transparent; border-radius: 14px;
+  padding: 10px 24px; cursor: pointer; transition: all 0.15s;
+}
+.team-btn.red { background: #ffe0e0; color: #cc0000; border-color: #ffaaaa; }
+.team-btn.blue { background: #e0e8ff; color: #0044cc; border-color: #aabfff; }
+.team-btn.selected { transform: scale(1.08); box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+.team-btn.red.selected { background: #ff4444; color: white; border-color: #cc0000; }
+.team-btn.blue.selected { background: #3366ff; color: white; border-color: #0033cc; }
+.map-picker { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
+.map-pick-btn {
+  font-size: 0.78rem; font-weight: 700; font-family: 'Nunito', sans-serif;
+  border: 2px solid var(--border); border-radius: 10px;
+  padding: 6px 12px; cursor: pointer; background: white;
+  transition: all 0.15s;
+}
+.map-pick-btn:hover { border-color: var(--pink); background: #fff0f7; }
+.map-pick-btn.selected { background: var(--pink); color: white; border-color: #e060a0; }
+
+/* Health bars */
+.healthbar-wrap {
+  position: fixed; top: 60px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 24px; pointer-events: none; z-index: 50;
+  display: none;
+}
+.healthbar-wrap.visible { display: flex; }
+.hb-team { display: flex; flex-direction: column; gap: 4px; }
+.hb-player { display: flex; align-items: center; gap: 6px; }
+.hb-name {
+  font-family: 'Fredoka One', cursive; font-size: 0.85rem;
+  background: rgba(0,0,0,0.55); color: white;
+  padding: 2px 8px; border-radius: 8px; min-width: 70px; text-align: center;
+}
+.hb-bar-bg {
+  width: 100px; height: 12px; background: rgba(0,0,0,0.25);
+  border-radius: 6px; overflow: hidden;
+}
+.hb-bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
+.hb-red .hb-bar-fill { background: #ff3333; }
+.hb-blue .hb-bar-fill { background: #3366ff; }
+
+/* War timer overlay */
+#warTimer {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Fredoka One', cursive;
+  font-size: 5rem; color: white;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  pointer-events: none; z-index: 200;
+  display: none;
+}
+/* Win screen */
+#winScreen {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center;
+  z-index: 300; flex-direction: column;
+}
+#winScreen.show { display: flex; }
+#winScreen .win-box {
+  background: var(--card); border-radius: 28px;
+  padding: 48px 56px; text-align: center;
+  border: 3px solid var(--border);
+}
+#winScreen .win-title {
+  font-family: 'Fredoka One', cursive; font-size: 3rem;
+  margin-bottom: 10px;
+}
 
   @media (max-width: 600px) {
     .left-panel { width: 150px; min-width: 130px; }
@@ -370,7 +469,7 @@
       <svg viewBox="0 0 44 60"><circle cx="22" cy="10" r="9" fill="#7ecb6f" stroke="#4a9940" stroke-width="2"/><line x1="22" y1="19" x2="22" y2="42" stroke="#7ecb6f" stroke-width="3" stroke-linecap="round"/><line x1="22" y1="26" x2="10" y2="36" stroke="#7ecb6f" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="26" x2="34" y2="36" stroke="#7ecb6f" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="42" x2="13" y2="56" stroke="#7ecb6f" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="42" x2="31" y2="56" stroke="#7ecb6f" stroke-width="2.5" stroke-linecap="round"/><circle cx="18" cy="9" r="1.5" fill="white"/><circle cx="26" cy="9" r="1.5" fill="white"/><path d="M18 14 Q22 17 26 14" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
     </div>
 
-    <button class="btn btn-pink" style="width:100%;font-size:1.2rem;margin-bottom:10px;" onclick="createRoom()">✨ Create a Room</button>
+    <button class="btn btn-pink" style="width:100%;font-size:1.2rem;margin-bottom:10px;" onclick="openCreateModal()">✨ Create a Room</button>
 
     <div class="lobby-divider">or join a friend</div>
 
@@ -467,6 +566,62 @@
   </div>
 </div>
 
+<!-- CREATE ROOM MODAL -->
+<div class="modal-overlay" id="createModal" style="display:none;">
+  <div class="modal-box">
+    <h2>🏠 Create Room</h2>
+    <p style="color:#888;font-size:0.88rem;margin-bottom:14px;">Pick your map & game mode</p>
+
+    <div style="font-family:'Fredoka One',cursive;font-size:1rem;color:var(--purple);margin-bottom:8px;">🗺️ Choose Map</div>
+    <div class="map-picker" id="modalMapPicker"></div>
+
+    <div style="font-family:'Fredoka One',cursive;font-size:1rem;color:var(--purple);margin:14px 0 8px;">⚔️ Choose Mode</div>
+    <div class="mode-cards">
+      <div class="mode-card selected" id="modeCardFriendly" onclick="selectMode('friendly')">
+        <div class="icon">🌈</div>
+        <div class="label">Friendly</div>
+        <div class="desc">Creative & peaceful play</div>
+      </div>
+      <div class="mode-card" id="modeCardWar" onclick="selectMode('war')">
+        <div class="icon">💀</div>
+        <div class="label">BLOODBATH</div>
+        <div class="desc">Shoot. Build. Destroy.</div>
+      </div>
+    </div>
+
+    <div id="teamSection" style="display:none;">
+      <div style="font-family:'Fredoka One',cursive;font-size:1rem;color:#e74c3c;margin-bottom:8px;">🔴🔵 Your Team</div>
+      <div class="team-select">
+        <button class="team-btn red selected" id="teamRed" onclick="selectTeam('red')">🔴 Red Team</button>
+        <button class="team-btn blue" id="teamBlue" onclick="selectTeam('blue')">🔵 Blue Team</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px;">
+      <button class="btn btn-yellow" style="flex:1" onclick="document.getElementById('createModal').style.display='none'">Cancel</button>
+      <button class="btn btn-pink" style="flex:1" onclick="confirmCreate()">✨ Create!</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEALTH BARS HUD -->
+<div class="healthbar-wrap" id="healthbarWrap">
+  <div class="hb-team hb-red" id="hbRed"></div>
+  <div class="hb-team hb-blue" id="hbBlue"></div>
+</div>
+
+<!-- WAR COUNTDOWN TIMER -->
+<div id="warTimer"></div>
+
+<!-- WIN SCREEN -->
+<div id="winScreen">
+  <div class="win-box">
+    <div class="win-title" id="winTitle">🏆 Red Team Wins!</div>
+    <p style="color:#888;margin-bottom:24px;">GG! Well played.</p>
+    <button class="btn btn-pink" onclick="location.reload()">🏠 Back to Lobby</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 <div class="copied-popup" id="copiedPopup">📋 Room code copied!</div>
 
@@ -480,30 +635,11 @@ const SERVER_URL = "https://tinybuilders-server.onrender.com";
 const COLORS = ["#222222","#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff85b3","#1abc9c","#ffffff","#795548","#607d8b"];
 const PLAYER_COLORS = ["#ff85b3","#c4a8ff","#ffe066","#7ecb6f","#ffb347","#87ceeb"];
 const MAPS = [
-  { id: "meadow",    name: "🌿 Meadow",         ground: "#7ecb6f", horizon: "#c8f5c8", feature: "hills",       weather: "rain"   },
-  { id: "volcano",   name: "🌋 Volcano",         ground: "#3b2b2b", horizon: "#6d3b31", feature: "volcano",     weather: "ash"    },
-  { id: "waterfall", name: "💧 Waterfall",       ground: "#5fa65c", horizon: "#bce9d2", feature: "waterfall",   weather: "mist"   },
-  { id: "space",     name: "🚀 Space Station",   ground: "#303646", horizon: "#151629", feature: "space",       weather: "meteor" },
-  { id: "minecraft", name: "⛏️ Minecraft",       ground: "#6fb24d", horizon: "#a9dc75", feature: "blocks",      weather: "rain"   },
-  { id: "school",    name: "🏫 School",          ground: "#79bd73", horizon: "#d8edf8", feature: "school",      weather: "leaves" },
-  { id: "love",      name: "💖 Love Garden",     ground: "#86c878", horizon: "#ffd2df", feature: "love",        weather: "petals" },
-  { id: "river",     name: "🏞️ River",           ground: "#74bb65", horizon: "#c3e9ff", feature: "river",       weather: "rain"   },
-  { id: "ocean",     name: "🌊 Ocean",           ground: "#1f87a8", horizon: "#ace7ff", feature: "ocean",       weather: "rain"   },
-  { id: "beach",     name: "🏖️ Beach",           ground: "#e8c66a", horizon: "#bdefff", feature: "beach",       weather: "breeze" },
-  { id: "snow",      name: "❄️ Snow Village",    ground: "#eef8ff", horizon: "#dceeff", feature: "snow",        weather: "snow"   },
-  { id: "forest",    name: "🌲 Forest",          ground: "#4f8f49", horizon: "#b6e7c8", feature: "forest",      weather: "leaves" },
-  { id: "desert",    name: "🏜️ Desert",          ground: "#d4a352", horizon: "#f5d080", feature: "desert",      weather: "sandstorm"},
-  { id: "arctic",    name: "🧊 Arctic",          ground: "#c8eeff", horizon: "#e8f8ff", feature: "arctic",      weather: "snow"   },
-  { id: "jungle",    name: "🦜 Jungle",          ground: "#2d7a2d", horizon: "#80d878", feature: "jungle",      weather: "rain"   },
-  { id: "cave",      name: "🦇 Cave",            ground: "#2a2230", horizon: "#1a1420", feature: "cave",        weather: "drips"  },
-  { id: "candy",     name: "🍭 Candy Land",      ground: "#f9a8d4", horizon: "#fce7f3", feature: "candy",       weather: "petals" },
-  { id: "underwater",name: "🐠 Underwater",      ground: "#0a4a7a", horizon: "#0e7bb5", feature: "underwater",  weather: "bubbles"},
-  { id: "mushroom",  name: "🍄 Mushroom Forest", ground: "#7d4e24", horizon: "#c9a87c", feature: "mushroom",    weather: "spores" },
-  { id: "sunset",    name: "🌅 Sunset Cliffs",   ground: "#b8804a", horizon: "#ff9a5c", feature: "cliffs",      weather: "breeze" },
-  { id: "tundra",    name: "🐻 Tundra",          ground: "#6b8f6b", horizon: "#b8d8b8", feature: "tundra",      weather: "snow"   },
-  { id: "city",      name: "🏙️ City",            ground: "#4a4a4a", horizon: "#8a8a9a", feature: "city",        weather: "rain"   },
-  { id: "sakura",    name: "🌸 Sakura Park",     ground: "#8cc870", horizon: "#ffc0d0", feature: "sakura",      weather: "petals" },
-  { id: "galaxy",    name: "🌌 Galaxy",          ground: "#0a0030", horizon: "#200060", feature: "galaxy",      weather: "meteor" },
+  { id: "meadow",    name: "🌿 Meadow",       ground: "#7ecb6f", horizon: "#c8f5c8", feature: "hills",    weather: "rain"   },
+  { id: "snow",      name: "❄️ Snow Village",  ground: "#eef8ff", horizon: "#dceeff", feature: "snow",     weather: "snow"   },
+  { id: "desert",    name: "🏜️ Desert",        ground: "#d4a352", horizon: "#f5d080", feature: "desert",   weather: "sandstorm"},
+  { id: "space",     name: "🚀 Space Station", ground: "#303646", horizon: "#151629", feature: "space",    weather: "meteor" },
+  { id: "city",      name: "🏙️ City",          ground: "#4a4a4a", horizon: "#8a8a9a", feature: "city",     weather: "rain"   },
 ];
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -525,6 +661,20 @@ let isDrawing = false;
 let worldW = 0, worldH = 0;
 let stickmanPositions = {};
 let currentMapId = "meadow";
+// War mode state
+let gameMode = "friendly"; // "friendly" | "war"
+let myTeam = "red";        // "red" | "blue"
+let warPhase = "build";    // "build" | "fight"
+let playerHealth = {};     // { socketId: hp (0-100) }
+let bullets = [];          // active bullets
+let bloodParticles = [];   // blood/hit particles
+let warBuildTimeLeft = 10;
+let warBuildTimer = null;
+let myGunCooldown = 0;
+let gameOver = false;
+const BULLET_SPEED = 12;
+const BULLET_DAMAGE = 20;
+const OBJ_HP = {};         // object health for war mode (id -> 0-100)
 
 // Drawing state
 let currentColor = "#222222";
@@ -574,13 +724,287 @@ const myPlacedIds = new Set();
 const OBJ_GRAVITY = 0.38;
 
 // ---- LOBBY ----
-function createRoom() {
+function openCreateModal() {
+  // Build map picker
+  const picker = document.getElementById("modalMapPicker");
+  picker.innerHTML = "";
+  MAPS.forEach(m => {
+    const b = document.createElement("button");
+    b.className = "map-pick-btn" + (m.id === "meadow" ? " selected" : "");
+    b.textContent = m.name;
+    b.dataset.id = m.id;
+    b.onclick = () => {
+      picker.querySelectorAll(".map-pick-btn").forEach(x => x.classList.remove("selected"));
+      b.classList.add("selected");
+    };
+    picker.appendChild(b);
+  });
+  document.getElementById("createModal").style.display = "flex";
+}
+
+function selectMode(mode) {
+  gameMode = mode;
+  document.getElementById("modeCardFriendly").classList.toggle("selected", mode === "friendly");
+  document.getElementById("modeCardWar").classList.toggle("selected", mode === "war");
+  document.getElementById("teamSection").style.display = mode === "war" ? "block" : "none";
+}
+
+function selectTeam(team) {
+  myTeam = team;
+  document.getElementById("teamRed").classList.toggle("selected", team === "red");
+  document.getElementById("teamBlue").classList.toggle("selected", team === "blue");
+}
+
+function confirmCreate() {
   const name = document.getElementById("joinNameInput").value.trim() || "Player";
   myName = name;
+  const picked = document.querySelector("#modalMapPicker .map-pick-btn.selected");
+  currentMapId = picked ? picked.dataset.id : "meadow";
+  document.getElementById("createModal").style.display = "none";
   initSocket(() => {
-    socket.emit("createRoom", { name, mapId: currentMapId });
+    socket.emit("createRoom", { name, mapId: currentMapId, mode: gameMode, team: myTeam });
   });
 }
+// ============================================================
+//  WAR MODE — BLOODBATH
+// ============================================================
+function initWarMode() {
+  if (gameMode !== "war") return;
+  document.getElementById("healthbarWrap").classList.add("visible");
+  warPhase = "build";
+  gameOver = false;
+
+  // Init every player's health
+  Object.keys(players).forEach(id => {
+    playerHealth[id] = 100;
+  });
+  playerHealth[myPlayerId] = 100;
+
+  renderHealthBars();
+  startWarBuildPhase();
+}
+
+function startWarBuildPhase() {
+  warBuildTimeLeft = 10;
+  const timerEl = document.getElementById("warTimer");
+  timerEl.style.display = "block";
+  timerEl.style.color = "#ffe066";
+  timerEl.textContent = "⚔️ BUILD! " + warBuildTimeLeft;
+
+  warBuildTimer = setInterval(() => {
+    warBuildTimeLeft--;
+    if (warBuildTimeLeft <= 0) {
+      clearInterval(warBuildTimer);
+      timerEl.textContent = "🔫 FIGHT!";
+      timerEl.style.color = "#ff3333";
+      warPhase = "fight";
+      setTimeout(() => { timerEl.style.display = "none"; }, 1500);
+    } else {
+      timerEl.textContent = "⚔️ BUILD! " + warBuildTimeLeft;
+    }
+  }, 1000);
+}
+
+function renderHealthBars() {
+  const redDiv = document.getElementById("hbRed");
+  const blueDiv = document.getElementById("hbBlue");
+  redDiv.innerHTML = ""; blueDiv.innerHTML = "";
+  Object.entries(players).forEach(([id, p]) => {
+    const team = p.team || "red";
+    const hp = playerHealth[id] !== undefined ? playerHealth[id] : 100;
+    const pct = Math.max(0, hp);
+    const div = document.createElement("div");
+    div.className = "hb-player";
+    div.innerHTML = `<div class="hb-name">${p.name}</div>
+      <div class="hb-bar-bg"><div class="hb-bar-fill" style="width:${pct}%"></div></div>`;
+    (team === "red" ? redDiv : blueDiv).appendChild(div);
+  });
+}
+
+function fireBullet() {
+  if (gameMode !== "war" || warPhase !== "fight" || gameOver) return;
+  if (myGunCooldown > 0) return;
+  myGunCooldown = 18; // ~300ms at 60fps
+
+  const dir = myStickFacing || 1;
+  const headY = myStickY - 62; // approximate head
+  const bul = {
+    id: Date.now() + Math.random(),
+    x: myStickX + dir * 18,
+    y: headY,
+    vx: BULLET_SPEED * dir,
+    vy: -1,
+    ownerId: myPlayerId,
+    ownerTeam: myTeam,
+    dead: false
+  };
+  bullets.push(bul);
+  // Broadcast to others
+  socket.emit("bulletFired", { roomCode, bullet: bul });
+}
+
+function updateBullets() {
+  if (gameMode !== "war" || warPhase !== "fight") return;
+  if (myGunCooldown > 0) myGunCooldown--;
+
+  bullets.forEach(b => {
+    if (b.dead) return;
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Off-screen
+    if (b.x < -50 || b.x > worldW + 50 || b.y < -50 || b.y > worldH + 50) {
+      b.dead = true; return;
+    }
+
+    // Check collision with objects (only for locally owned bullets to avoid double damage)
+    if (b.ownerId === myPlayerId) {
+      for (let obj of placedObjects) {
+        const cx = obj.x + obj.w / 2, cy = obj.y + obj.h / 2;
+        if (Math.abs(b.x - cx) < obj.w / 2 + 5 && Math.abs(b.y - cy) < obj.h / 2 + 5) {
+          // Hit object
+          if (OBJ_HP[obj.id] === undefined) OBJ_HP[obj.id] = 100;
+          OBJ_HP[obj.id] -= 25;
+          spawnHitSpark(b.x, b.y, "#888");
+          b.dead = true;
+          socket.emit("objHit", { roomCode, objId: obj.id, hp: OBJ_HP[obj.id] });
+          if (OBJ_HP[obj.id] <= 0) {
+            socket.emit("deleteObject", { roomCode, objectId: obj.id });
+          }
+          return;
+        }
+      }
+
+      // Check hit on enemy stickmen
+      Object.entries(stickmanPositions).forEach(([id, sp]) => {
+        if (sp.team === myTeam) return; // same team, no friendly fire
+        const dist = Math.hypot(b.x - sp.x, b.y - (sp.y - 30));
+        if (dist < 22) {
+          b.dead = true;
+          spawnBlood(sp.x, sp.y - 30);
+          socket.emit("playerHit", { roomCode, targetId: id, damage: BULLET_DAMAGE });
+        }
+      });
+    }
+  });
+
+  bullets = bullets.filter(b => !b.dead);
+}
+
+function spawnBlood(x, y) {
+  for (let i = 0; i < 12; i++) {
+    bloodParticles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 5,
+      vy: Math.random() * -4 - 1,
+      life: 35 + Math.random() * 20,
+      r: 3 + Math.random() * 3
+    });
+  }
+}
+
+function spawnHitSpark(x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    bloodParticles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 15,
+      r: 2,
+      color: color || "#ffbb00"
+    });
+  }
+}
+
+function updateBloodParticles() {
+  bloodParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life--;
+  });
+  bloodParticles = bloodParticles.filter(p => p.life > 0);
+}
+
+function drawBullets(ctx) {
+  if (gameMode !== "war") return;
+  bullets.forEach(b => {
+    ctx.save();
+    ctx.fillStyle = b.ownerTeam === "red" ? "#ff4444" : "#4488ff";
+    ctx.shadowColor = b.ownerTeam === "red" ? "#ff0000" : "#0044ff";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, 7, 3, Math.atan2(b.vy, b.vx), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawGun(ctx, x, y, color, facing) {
+  if (gameMode !== "war") return;
+  ctx.save();
+  ctx.translate(x, y - 30);
+  ctx.scale(facing, 1);
+  ctx.fillStyle = "#555";
+  ctx.fillRect(4, -4, 18, 7);   // barrel
+  ctx.fillStyle = "#333";
+  ctx.fillRect(4, 3, 10, 8);    // grip
+  ctx.fillStyle = "#777";
+  ctx.fillRect(18, -3, 6, 5);   // muzzle
+  ctx.restore();
+}
+
+function drawBloodParticles(ctx) {
+  bloodParticles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p.life / 20);
+    ctx.fillStyle = p.color || "#cc0000";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawObjectCracks(ctx, obj) {
+  if (gameMode !== "war") return;
+  const hp = OBJ_HP[obj.id];
+  if (hp === undefined || hp >= 100) return;
+  const cx = obj.x + obj.w / 2, cy = obj.y + obj.h / 2;
+  const crackCount = hp < 25 ? 6 : hp < 50 ? 4 : hp < 75 ? 2 : 1;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < crackCount; i++) {
+    const angle = (i / crackCount) * Math.PI * 2 + 0.3;
+    const len = (obj.w / 2) * 0.6 * (1 - hp / 100 + 0.3);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * len * 0.5, Math.sin(angle) * len * 0.5);
+    ctx.lineTo(Math.cos(angle + 0.5) * len * 0.4, Math.sin(angle + 0.5) * len * 0.4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function checkWarWin() {
+  if (gameMode !== "war" || gameOver || warPhase !== "fight") return;
+  const redAlive = Object.entries(playerHealth).some(([id, hp]) => {
+    return hp > 0 && (players[id]?.team === "red" || (id === myPlayerId && myTeam === "red"));
+  });
+  const blueAlive = Object.entries(playerHealth).some(([id, hp]) => {
+    return hp > 0 && (players[id]?.team === "blue" || (id === myPlayerId && myTeam === "blue"));
+  });
+  if (!redAlive || !blueAlive) {
+    gameOver = true;
+    const winner = redAlive ? "🔴 Red Team" : "🔵 Blue Team";
+    document.getElementById("winTitle").textContent = `🏆 ${winner} Wins!`;
+    document.getElementById("winScreen").classList.add("show");
+  }
+}
+
+function createRoom() { openCreateModal(); } // keep backward compat
 
 function joinRoom() {
   const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
@@ -588,7 +1012,7 @@ function joinRoom() {
   if (!code) { showLobbyError("Enter a room code!"); return; }
   myName = name;
   initSocket(() => {
-    socket.emit("joinRoom", { roomCode: code, name });
+    socket.emit("joinRoom", { roomCode: code, name, team: myTeam });
   });
 }
 
@@ -686,9 +1110,29 @@ function initSocket(cb) {
 
   socket.on("stickmanMoved", (data) => {
     if (data.id !== myPlayerId) {
-      stickmanPositions[data.id] = { x: data.x, y: data.y, color: data.color, name: data.name };
+      stickmanPositions[data.id] = { x: data.x, y: data.y, color: data.color, name: data.name, team: data.team, facing: data.facing };
       renderWorld();
     }
+  });
+  socket.on("bulletFired", (bul) => {
+    bullets.push({ ...bul, dead: false });
+  });
+
+  socket.on("playerHit", ({ targetId, damage }) => {
+    if (playerHealth[targetId] === undefined) playerHealth[targetId] = 100;
+    playerHealth[targetId] = Math.max(0, playerHealth[targetId] - damage);
+    if (targetId === myPlayerId) {
+      const flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;inset:0;background:rgba(255,0,0,0.3);pointer-events:none;z-index:400;transition:opacity 0.4s";
+      document.body.appendChild(flash);
+      setTimeout(() => { flash.style.opacity = "0"; setTimeout(() => flash.remove(), 400); }, 50);
+    }
+    renderHealthBars();
+    checkWarWin();
+  });
+
+  socket.on("objHit", ({ objId, hp }) => {
+    OBJ_HP[objId] = hp;
   });
 
   socket.on("connect_error", () => {
@@ -710,6 +1154,7 @@ function startGame() {
   myStickX = worldW * 0.5;
   myStickY = worldH * 0.82;
   stickVelX = 0; stickVelY = 0; stickOnGround = true;
+  if (gameMode === "war") initWarMode();
   renderWorld();
   selectTool("place");
   showToast("Welcome, " + myName + "! 🎉  Arrow keys / WASD + Space to jump!");
@@ -987,6 +1432,11 @@ let walkFrame = 0;
 const keysDown = {};
 window.addEventListener("keydown", e => {
   keysDown[e.key] = true;
+  if ((e.code === "Space" || e.code === "Tab") && gameMode === "war" && warPhase === "fight") {
+  e.preventDefault();
+  fireBullet();
+  return;
+}
   // Jump
   if ((e.key === "ArrowUp" || e.key === " " || e.key === "w" || e.key === "W") && stickOnGround) {
     stickVelY = STICK_JUMP;
@@ -1989,9 +2439,12 @@ function physicsUpdate() {
   if (socket && roomCode) {
     if (!physicsUpdate._last || Date.now() - physicsUpdate._last > 50) {
       physicsUpdate._last = Date.now();
-      socket.emit("moveStickman", { roomCode, x: myStickX, y: myStickY, color: myColor, name: myName });
+      socket.emit("moveStickman", { roomCode, x: myStickX, y: myStickY, color: myColor, name: myName, team: myTeam, facing: stickFacing });
     }
   }
+  updateBullets();
+  updateBloodParticles();
+  if (gameMode === "war" && warPhase === "fight") checkWarWin();
 }
 
 // ---- TRANSFORM STATE ----
@@ -3417,14 +3870,24 @@ function renderWorld() {
 
   drawables.forEach(drawable => {
     if (drawable.type === 'other_stick') {
-      const pos = drawable.data;
-      drawStickman(worldCtx, pos.x, pos.y, pos.color, pos.name, false, 1, false);
-      return;
-    }
+  const pos = drawable.data;
+  let spColor = pos.color;
+  if (gameMode === "war") {
+    spColor = pos.team === "red" ? "#ff3333" : "#3366ff";
+  }
+  drawStickman(worldCtx, pos.x, pos.y, spColor, pos.name, false, pos.facing || 1, false);
+  if (gameMode === "war") {
+    drawGun(worldCtx, pos.x, pos.y, spColor, pos.facing || 1);
+  }
+  return;
+}
     if (drawable.type === 'my_stick') {
-      drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
-      return;
-    }
+  drawStickman(worldCtx, myStickX, myStickY, myColor, myName + " (you)", true, stickFacing, stickWalking);
+  if (gameMode === "war") {
+    drawGun(worldCtx, myStickX, myStickY, myColor, stickFacing);
+  }
+  return;
+}
 
     const obj = drawable.data;
     const img = new Image();
@@ -3445,6 +3908,7 @@ function renderWorld() {
     worldCtx.fill();
 
     worldCtx.restore();
+    drawObjectCracks(worldCtx, obj);
 
     // TNT pulsing indicator
     if (obj.isTNT) {
@@ -3506,7 +3970,8 @@ function renderWorld() {
   drawWater(worldCtx);
   drawExplosions(worldCtx);
   drawWaterPumps(worldCtx);
-
+  drawBullets(worldCtx);
+  drawBloodParticles(worldCtx);
   // --- FLASHLIGHT (drawn over everything else) ---
   drawFlashlight(worldCtx);
 

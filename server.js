@@ -30,13 +30,11 @@ io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
 
   // ---- CREATE ROOM ----
-  socket.on("createRoom", ({ name, mapId }) => {
+  socket.on("createRoom", ({ name, mapId, mode, team }) => {
     const roomCode = makeRoomCode();
 
     rooms[roomCode] = {
-      players: {
-        [socket.id]: { name: name || "Player", color: "#ff85b3" }
-      },
+  players: { [socket.id]: { name: name || "Player", color: "#ff85b3", team: team || "red" } },
       objects: [],
       mapId: mapId || "meadow"
     };
@@ -44,18 +42,13 @@ io.on("connection", (socket) => {
     socket.join(roomCode);
     socket.roomCode = roomCode;
 
-    socket.emit("roomCreated", {
-      roomCode,
-      objects: [],
-      players: rooms[roomCode].players,
-      mapId: rooms[roomCode].mapId
-    });
+    socket.emit("roomCreated", { roomCode, objects: [], players: rooms[roomCode].players, mapId: rooms[roomCode].mapId, mode: rooms[roomCode].mode });
 
     console.log(`Room ${roomCode} created by ${name}`);
   });
 
   // ---- JOIN ROOM ----
-  socket.on("joinRoom", ({ roomCode, name }) => {
+  socket.on("joinRoom", ({ roomCode, name, team }) => {
     const room = rooms[roomCode];
 
     if (!room) {
@@ -72,7 +65,7 @@ io.on("connection", (socket) => {
     const takenColors = Object.values(room.players).map(p => p.color);
     const availableColor = colors.find(c => !takenColors.includes(c)) || colors[0];
 
-    room.players[socket.id] = { name: name || "Player", color: availableColor };
+    room.players[socket.id] = { name: name || "Player", color: availableColor, team: team || "red" };
     socket.join(roomCode);
     socket.roomCode = roomCode;
 
@@ -138,6 +131,20 @@ io.on("connection", (socket) => {
       id: socket.id,
       x, y, color, name
     });
+  });
+  // ---- BULLET FIRED ----
+  socket.on("bulletFired", ({ roomCode, bullet }) => {
+    socket.to(roomCode).emit("bulletFired", bullet);
+  });
+
+  // ---- PLAYER HIT ----
+  socket.on("playerHit", ({ roomCode, targetId, damage }) => {
+    io.to(roomCode).emit("playerHit", { targetId, damage });
+  });
+
+  // ---- OBJECT HIT ----
+  socket.on("objHit", ({ roomCode, objId, hp }) => {
+    socket.to(roomCode).emit("objHit", { objId, hp });
   });
 
   // ---- DISCONNECT ----

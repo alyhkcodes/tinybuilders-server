@@ -774,14 +774,33 @@ function initWarMode() {
   warPhase = "build";
   gameOver = false;
 
-  // Init every player's health
   Object.keys(players).forEach(id => {
     playerHealth[id] = 100;
   });
   playerHealth[myPlayerId] = 100;
 
   renderHealthBars();
-  startWarBuildPhase();
+  showReadyButton();
+}
+
+function showReadyButton() {
+  const overlay = document.createElement("div");
+  overlay.id = "readyOverlay";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:250;";
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:24px;padding:36px 48px;text-align:center;border:3px solid var(--border);">
+      <div style="font-family:'Fredoka One',cursive;font-size:2rem;color:var(--pink);margin-bottom:8px;">⚔️ BLOODBATH</div>
+      <p style="color:#888;margin-bottom:20px;">Waiting for all players to ready up...</p>
+      <div id="readyCount" style="font-family:'Fredoka One',cursive;font-size:1.2rem;color:var(--purple);margin-bottom:18px;">0 / ? ready</div>
+      <button class="btn btn-pink" style="font-size:1.2rem;padding:14px 40px;" onclick="pressReady()">✅ READY!</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function pressReady() {
+  const btn = document.querySelector("#readyOverlay button");
+  if (btn) { btn.disabled = true; btn.textContent = "✅ Waiting..."; }
+  socket.emit("playerReady", { roomCode });
 }
 
 function startWarBuildPhase() {
@@ -1048,6 +1067,8 @@ function initSocket(cb) {
     placedObjects = data.objects || [];
     players = data.players || {};
     currentMapId = data.mapId || currentMapId;
+    gameMode = data.mode || "friendly";
+    myTeam = data.team || "red";
     const taken = Object.values(players).map(p => p.color);
     myColor = PLAYER_COLORS.find(c => !taken.includes(c)) || PLAYER_COLORS[Math.floor(Math.random()*6)];
     startGame();
@@ -1135,6 +1156,17 @@ function initSocket(cb) {
     OBJ_HP[objId] = hp;
   });
 
+  socket.on("playerReadyUpdate", ({ readyCount, totalCount }) => {
+    const el = document.getElementById("readyCount");
+    if (el) el.textContent = readyCount + " / " + totalCount + " ready";
+  });
+
+  socket.on("warStarted", () => {
+    const overlay = document.getElementById("readyOverlay");
+    if (overlay) overlay.remove();
+    startWarBuildPhase();
+  });
+
   socket.on("connect_error", () => {
     showLobbyError("Cannot connect to server. Check SERVER_URL in index.html.");
   });
@@ -1155,6 +1187,7 @@ function startGame() {
   myStickY = worldH * 0.82;
   stickVelX = 0; stickVelY = 0; stickOnGround = true;
   if (gameMode === "war") initWarMode();
+  else warPhase = "friendly";
   renderWorld();
   selectTool("place");
   showToast("Welcome, " + myName + "! 🎉  Arrow keys / WASD + Space to jump!");

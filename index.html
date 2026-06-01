@@ -399,7 +399,7 @@
 
 /* Health bars */
 .healthbar-wrap {
-  position: fixed; top: 60px; left: 0; right: 0;
+  position: fixed; top: 48px; left: 0; right: 0;
   display: flex; justify-content: space-between;
   padding: 0 24px; pointer-events: none; z-index: 50;
   display: none;
@@ -1085,10 +1085,12 @@ function initSocket(cb) {
     currentMapId = data.mapId || currentMapId;
     gameMode = data.mode || "friendly";
     myTeam = data.team || "red";
-    // Sync player team from server
-    if (players[myPlayerId]) players[myPlayerId].team = myTeam;
     const taken = Object.values(players).map(p => p.color);
     myColor = PLAYER_COLORS.find(c => !taken.includes(c)) || PLAYER_COLORS[Math.floor(Math.random()*6)];
+    // Add self to players before startGame so initWarMode sees us
+    players[socket.id] = { name: myName, color: myColor, team: myTeam };
+    // Sync day/night cycle with room creator
+    if (data.dayStart) dayStart = data.dayStart;
     startGame();
   });
 
@@ -1189,6 +1191,13 @@ function initSocket(cb) {
   socket.on("warStarted", () => {
     const overlay = document.getElementById("readyOverlay");
     if (overlay) overlay.remove();
+    // If joiner somehow missed the ready screen, make sure war initializes
+    if (gameMode === "war" && !document.getElementById("healthbarWrap").classList.contains("visible")) {
+      document.getElementById("healthbarWrap").classList.add("visible");
+      Object.keys(players).forEach(id => { if (playerHealth[id] === undefined) playerHealth[id] = 100; });
+      playerHealth[myPlayerId] = 100;
+      renderHealthBars();
+    }
     startWarBuildPhase();
   });
 

@@ -74,7 +74,9 @@ io.on("connection", (socket) => {
       roomCode,
       objects: room.objects,
       players: room.players,
-      mapId: room.mapId || "meadow"
+      mapId: room.mapId || "meadow",
+      mode: room.mode || "friendly",
+      team: room.players[socket.id].team
     });
 
     // Tell everyone in room about updated players
@@ -137,6 +139,25 @@ io.on("connection", (socket) => {
     socket.to(roomCode).emit("bulletFired", bullet);
   });
 
+  // ---- PLAYER READY ----
+  socket.on("playerReady", ({ roomCode }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    if (!room.readyPlayers) room.readyPlayers = new Set();
+    room.readyPlayers.add(socket.id);
+
+    io.to(roomCode).emit("playerReadyUpdate", {
+      readyCount: room.readyPlayers.size,
+      totalCount: Object.keys(room.players).length
+    });
+
+    if (room.readyPlayers.size >= 2 &&
+        room.readyPlayers.size === Object.keys(room.players).length) {
+      io.to(roomCode).emit("warStarted");
+      room.readyPlayers = new Set();
+    }
+  });
+
   // ---- PLAYER HIT ----
   socket.on("playerHit", ({ roomCode, targetId, damage }) => {
     io.to(roomCode).emit("playerHit", { targetId, damage });
@@ -154,6 +175,7 @@ io.on("connection", (socket) => {
 
     const room = rooms[roomCode];
     delete room.players[socket.id];
+    if (room.readyPlayers) room.readyPlayers.delete(socket.id);
 
     // Tell remaining players
     io.to(roomCode).emit("playersUpdated", room.players);

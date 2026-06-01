@@ -447,6 +447,59 @@
   font-family: 'Fredoka One', cursive; font-size: 3rem;
   margin-bottom: 10px;
 }
+/* ===== LOBBY WAITING ROOM ===== */
+#waitingLobby {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+.waiting-card {
+  background: var(--card);
+  border-radius: 28px;
+  border: 3px solid var(--border);
+  box-shadow: 0 8px 40px rgba(100,60,0,0.13);
+  padding: 36px 44px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+.waiting-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: var(--pink);
+  margin-bottom: 4px;
+}
+.waiting-sub { font-size: 0.9rem; color: #aaa; margin-bottom: 24px; }
+.lobby-player-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.lobby-player-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #f8f3ff; border-radius: 14px; padding: 10px 18px;
+  border: 2px solid #e8d8ff;
+}
+.lobby-player-info { display: flex; align-items: center; gap: 10px; }
+.lobby-player-dot { width: 14px; height: 14px; border-radius: 50%; }
+.lobby-player-name { font-weight: 800; font-size: 1rem; }
+.lobby-player-team { font-size: 0.8rem; color: #888; }
+.lobby-ready-badge {
+  font-family: 'Fredoka One', cursive; font-size: 0.85rem;
+  padding: 4px 12px; border-radius: 10px;
+}
+.lobby-ready-badge.ready { background: #d4f5d4; color: #2a7a2a; }
+.lobby-ready-badge.waiting { background: #fff0d4; color: #a06010; }
+.lobby-ready-badge.host { background: #e8d8ff; color: #6030aa; }
+.lobby-room-code {
+  font-family: 'Fredoka One', cursive; font-size: 1.4rem;
+  background: var(--yellow); color: #6a4800;
+  border-radius: 14px; padding: 8px 24px;
+  display: inline-block; margin-bottom: 20px;
+  letter-spacing: 3px; cursor: pointer;
+  border: 2px solid #f0c800;
+}
+.lobby-room-code:hover::after { content: ' (click to copy)'; font-size: 0.7rem; }
+.start-error { color: #ff5252; font-size: 0.88rem; min-height: 20px; margin-top: 6px; }
 
   @media (max-width: 600px) {
     .left-panel { width: 150px; min-width: 130px; }
@@ -567,6 +620,24 @@
       <canvas id="worldCanvas"></canvas>
       <div class="world-hint" id="worldHint">← Draw something, collect it, then click here to place it! &nbsp;|&nbsp; Arrow keys / WASD to move · ↑ / Space to jump</div>
     </div>
+  </div>
+</div>
+
+<!-- ======= WAITING LOBBY ======= -->
+<div id="waitingLobby">
+  <div class="waiting-card">
+    <div class="waiting-title">🏠 Waiting Room</div>
+    <div class="waiting-sub">Share the room code with your friends!</div>
+    <div class="lobby-room-code" id="waitingRoomCode" onclick="copyRoomCode()">----</div>
+    <div class="lobby-player-list" id="lobbyPlayerList"></div>
+    <div id="readyBtnWrap">
+      <button class="btn btn-yellow" style="width:100%;margin-bottom:10px;" id="lobbyReadyBtn" onclick="toggleLobbyReady()">✅ Click to Ready Up</button>
+    </div>
+    <div id="hostStartWrap" style="display:none;">
+      <button class="btn btn-pink" style="width:100%;font-size:1.1rem;" onclick="hostStartGame()">🚀 Start Game!</button>
+    </div>
+    <div class="start-error" id="startError"></div>
+    <button class="btn btn-red btn-small" style="margin-top:14px;" onclick="leaveGame()">❌ Leave</button>
   </div>
 </div>
 
@@ -762,6 +833,53 @@ function selectJoinTeam(team) {
   myTeam = team;
   document.getElementById("joinTeamRed").classList.toggle("selected", team === "red");
   document.getElementById("joinTeamBlue").classList.toggle("selected", team === "blue");
+}
+let amIReady = false;
+let amIHost = false;
+
+function showWaitingLobby() {
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("waitingLobby").style.display = "flex";
+  document.getElementById("waitingRoomCode").textContent = roomCode;
+}
+
+function toggleLobbyReady() {
+  amIReady = !amIReady;
+  const btn = document.getElementById("lobbyReadyBtn");
+  btn.textContent = amIReady ? "✅ Ready!" : "✅ Click to Ready Up";
+  btn.style.background = amIReady ? "var(--grass)" : "var(--yellow)";
+  socket.emit("lobbyReady", { roomCode });
+}
+
+function hostStartGame() {
+  document.getElementById("startError").textContent = "";
+  socket.emit("hostStartGame", { roomCode });
+}
+
+function renderLobbyPlayers(players) {
+  const list = document.getElementById("lobbyPlayerList");
+  if (!list) return;
+  list.innerHTML = "";
+  Object.entries(players).forEach(([id, p]) => {
+    const isMe = id === myPlayerId;
+    const div = document.createElement("div");
+    div.className = "lobby-player-row";
+    let badge = "";
+    if (p.isHost) badge = `<span class="lobby-ready-badge host">👑 Host</span>`;
+    else if (p.ready) badge = `<span class="lobby-ready-badge ready">✅ Ready</span>`;
+    else badge = `<span class="lobby-ready-badge waiting">⏳ Waiting</span>`;
+    const teamLabel = p.team === "red" ? "🔴 Red" : "🔵 Blue";
+    div.innerHTML = `
+      <div class="lobby-player-info">
+        <div class="lobby-player-dot" style="background:${p.color}"></div>
+        <div>
+          <div class="lobby-player-name">${p.name}${isMe ? " (you)" : ""}</div>
+          <div class="lobby-player-team">${teamLabel}</div>
+        </div>
+      </div>
+      ${badge}`;
+    list.appendChild(div);
+  });
 }
 
 function confirmCreate() {
@@ -1071,10 +1189,15 @@ function initSocket(cb) {
     roomCode = data.roomCode;
     myPlayerId = socket.id;
     myColor = PLAYER_COLORS[0];
-    players[myPlayerId] = { name: myName, color: myColor };
+    players[myPlayerId] = { name: myName, color: myColor, team: myTeam, ready: false, isHost: true };
     placedObjects = data.objects || [];
     currentMapId = data.mapId || currentMapId;
-    startGame();
+    gameMode = data.mode || "friendly";
+    if (data.dayStart) dayStart = data.dayStart;
+    amIHost = true;
+    showWaitingLobby();
+    renderLobbyPlayers(players);
+    document.getElementById("hostStartWrap").style.display = "block";
   });
 
   socket.on("roomJoined", (data) => {
@@ -1085,13 +1208,13 @@ function initSocket(cb) {
     currentMapId = data.mapId || currentMapId;
     gameMode = data.mode || "friendly";
     myTeam = data.team || "red";
+    if (data.dayStart) dayStart = data.dayStart;
+    amIHost = false;
     const taken = Object.values(players).map(p => p.color);
     myColor = PLAYER_COLORS.find(c => !taken.includes(c)) || PLAYER_COLORS[Math.floor(Math.random()*6)];
-    // Add self to players before startGame so initWarMode sees us
-    players[socket.id] = { name: myName, color: myColor, team: myTeam };
-    // Sync day/night cycle with room creator
-    if (data.dayStart) dayStart = data.dayStart;
-    startGame();
+    if (players[myPlayerId]) players[myPlayerId].team = myTeam;
+    showWaitingLobby();
+    renderLobbyPlayers(players);
   });
 
   socket.on("joinError", (msg) => { showLobbyError(msg); });
@@ -1106,6 +1229,32 @@ function initSocket(cb) {
     });
     renderPlayers();
     if (gameMode === "war") renderHealthBars();
+  });
+
+  socket.on("lobbyUpdated", (data) => {
+    players = data;
+    if (players[myPlayerId]) players[myPlayerId].team = myTeam;
+    renderLobbyPlayers(players);
+    // Show start button only for host
+    const hostWrap = document.getElementById("hostStartWrap");
+    if (hostWrap) hostWrap.style.display = amIHost ? "block" : "none";
+  });
+
+  socket.on("gameStarting", (data) => {
+    players = data.players;
+    currentMapId = data.mapId || currentMapId;
+    gameMode = data.mode || "friendly";
+    if (data.dayStart) dayStart = data.dayStart;
+    if (players[myPlayerId]) players[myPlayerId].team = myTeam;
+    // Hide waiting lobby, start the actual game
+    document.getElementById("waitingLobby").style.display = "none";
+    placedObjects = [];
+    startGame();
+  });
+
+  socket.on("startError", (msg) => {
+    const el = document.getElementById("startError");
+    if (el) el.textContent = msg;
   });
 
   socket.on("objectsUpdated", (data) => {

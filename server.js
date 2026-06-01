@@ -30,21 +30,29 @@ io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
 
   // ---- CREATE ROOM ----
-  socket.on("createRoom", ({ name, mapId, mode, team }) => {
-    const roomCode = makeRoomCode();
+  socket.on("joinRoom", ({ roomCode, name, team }) => {
+    const room = rooms[roomCode];
+    if (!room) { socket.emit("joinError", "Room not found! Check the code."); return; }
+    if (Object.keys(room.players).length >= 4) { socket.emit("joinError", "Room is full (max 4 players)."); return; }
+    if (room.phase === "game") { socket.emit("joinError", "Game already started!"); return; }
 
-    rooms[roomCode] = {
-  players: { [socket.id]: { name: name || "Player", color: "#ff85b3", team: team || "red" } },
-      objects: [],
-      mapId: mapId || "meadow"
-    };
+    const colors = ["#ff85b3", "#c4a8ff", "#ffe066", "#7ecb6f", "#ffb347", "#87ceeb"];
+    const takenColors = Object.values(room.players).map(p => p.color);
+    const availableColor = colors.find(c => !takenColors.includes(c)) || colors[0];
 
+    room.players[socket.id] = { name: name || "Player", color: availableColor, team: team || "red", ready: false, isHost: false };
     socket.join(roomCode);
     socket.roomCode = roomCode;
 
-    socket.emit("roomCreated", { roomCode, objects: [], players: rooms[roomCode].players, mapId: rooms[roomCode].mapId, mode: rooms[roomCode].mode });
+    socket.emit("roomJoined", {
+      roomCode, objects: room.objects, players: room.players,
+      mapId: room.mapId || "meadow", mode: room.mode || "friendly",
+      team: room.players[socket.id].team, dayStart: room.dayStart || Date.now()
+    });
 
-    console.log(`Room ${roomCode} created by ${name}`);
+    io.to(roomCode).emit("playersUpdated", room.players);
+    io.to(roomCode).emit("lobbyUpdated", room.players);
+    console.log(`${name} joined room ${roomCode}`);
   });
 
   // ---- JOIN ROOM ----
@@ -76,7 +84,8 @@ io.on("connection", (socket) => {
       players: room.players,
       mapId: room.mapId || "meadow",
       mode: room.mode || "friendly",
-      team: room.players[socket.id].team
+      team: room.players[socket.id].team,
+      dayStart: room.dayStart || Date.now()
     });
 
     // Tell everyone in room about updated players
@@ -127,11 +136,10 @@ io.on("connection", (socket) => {
   });
 
   // ---- MOVE STICKMAN ----
-  socket.on("moveStickman", ({ roomCode, x, y, color, name }) => {
-    // Broadcast to everyone EXCEPT sender
+  socket.on("moveStickman", ({ roomCode, x, y, color, name, team, facing }) => {
     socket.to(roomCode).emit("stickmanMoved", {
       id: socket.id,
-      x, y, color, name
+      x, y, color, name, team, facing
     });
   });
   // ---- BULLET FIRED ----
@@ -167,6 +175,36 @@ io.on("connection", (socket) => {
   socket.on("objHit", ({ roomCode, objId, hp }) => {
     socket.to(roomCode).emit("objHit", { objId, hp });
   });
+  // ---- PLAYER READY TOGGLE (lobby) ----
+  socket.on("lobbyReady", ({ roomCode }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    const player = room.players[socket.id];
+    if (!player) return;
+    player.ready = !player.ready;
+    io.to(roomCode).emit("lobbyUpdated", room.players);
+  });
+
+  // ---- HOST STARTS GAME ----
+  socket.on("hostStartGame", ({ roomCode }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    const player = room.players[socket.id];
+    if (!player || !player.isHost) return;
+    const allReady = Object.values(room.players).every(p => p.ready || p.isHost);
+    if (!allReady) {
+      socket.emit("startError", "Not all players are ready!");
+      return;
+    }
+    room.phase = "game";
+    room.dayStart = Date.now();
+    io.to(roomCode).emit("gameStarting", {
+      players: room.players,
+      mapId: room.mapId,
+      mode: room.mode,
+      dayStart: room.dayStart
+    });
+  });
 
   // ---- DISCONNECT ----
   socket.on("disconnect", () => {
@@ -179,6 +217,7 @@ io.on("connection", (socket) => {
 
     // Tell remaining players
     io.to(roomCode).emit("playersUpdated", room.players);
+    io.to(roomCode).emit("lobbyUpdated", room.players);
 
     // Clean up empty rooms
     if (Object.keys(room.players).length === 0) {
